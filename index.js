@@ -131,7 +131,7 @@ let aDulation,
  * @param {Number} $y1
  * @param {Number} $x2
  * @param {Number} $y2
- * @retun {Function}
+ * @return {Function}
  */
 let CubicBezier = function($x1, $y1, $x2, $y2) {
 	let cx = 3 * $x1,
@@ -163,77 +163,95 @@ let CubicBezier = function($x1, $y1, $x2, $y2) {
 };
 
 /**
+ * @param {String} $keyframes - css3 keyframe code
+ * @return {Function} - get css3 keyframe object with name
+ * 
  * @see https://github.com/YerkoPalma/keyframe-parser/blob/master/index.js
  */
 let Keyframe = function($keyframes) {
-	let regexMainBlock = /\s*@keyframes\s*(\w*)\s*{(.*)}/;
-	let regexBlocks = /[\w+,\s|\d+%,\s]*\s*{\s*([\w\-\d.:\s(),;%]*)\s*}/g;
-	let regexBlockKey = /([\w\s%,])*{/;
-	$keyframes = $keyframes
-	let args = $keyframes.split(/(?=@)/);
+  let arglen = arguments[0].length
+  let result = ''
+  for (let i = 0; i < arglen; i++) {
+    let arg = arguments[ i + 1 ] || ''
+    result += $keyframes[i] + arg
+  }
+  result = result.trim().replace(/\s+/g, ' ')
+	let regexMainBlock = /\s*@keyframes\s*(\w*)\s*{(.*)}/
+	let regexBlocks = /[\w+,\s|\d+%,\s]*\s*{\s*([\w\-\d.:\s(),;%]*)\s*}/g
+	let regexBlockKey = /([\w\s%,].*(?={))/
+	let args = result.split(/(?=@)/)
 	let xtend = function() {
-		let hasOwnProperty = Object.prototype.hasOwnProperty;
+		let hasOwnProperty = Object.prototype.hasOwnProperty
 		let target = {}
 		for (let i = 0; i < arguments.length; i++) {
 			var source = arguments[i]
 			for (let key in source) {
-				if (hasOwnProperty.call(source, key)) {
-					target[key] = source[key]
-				}
+				if (hasOwnProperty.call(source, key)) target[key] = source[key]
 			}
 		}
 		return target
 	}
 	function keyToOffset($key) {
-		$key = $key.trim();
-		if ($key.indexOf('from') > -1) return 0;
-		if ($key.indexOf('to') > -1) return 1;
-		return parseInt($key) / 100;
+		$key = $key.trim()
+		if ($key.indexOf('from') > -1) return 0
+		if ($key.indexOf('to') > -1) return 1
+		return parseInt($key) / 100
 	}
-	function getKeyframeStr($name) {
-		let keyframsList = Object.create(null);
+  /**
+   * 
+   * @param {String} $name 
+   * @returns {String}
+   */
+	function getMainBlock($name) {
+    /**
+     * @type {Object} res
+     */
+		let res = {}
 		for (let arg of args) {
-			keyframsList[arg.match(regexMainBlock)[1]] = arg.match(regexMainBlock)[2].trim();
+			res[arg.match(regexMainBlock)[1]] = arg.match(regexMainBlock)[2].trim()
 		}
-		return keyframsList[$name];
+		return res[$name]
 	}
+  /**
+   * 
+   * @param {String} $block 
+   * @returns {Object}
+   */
 	function blockToContent($block) {
-		$block = $block.substring($block.indexOf('{') + 1, $block.indexOf('}')).trim();
-		console.log(`block {${$block}}`);
-		let data = Object.create(null);
-		let rules = $block.split(';');
-		console.log(`rules ${rules}`);
-		console.log(`rules.length ${rules.length}`);
+		$block = $block.substring($block.indexOf('{') + 1, $block.indexOf('}')).trim()
+		let data = Object.create(null)
+		let rules = $block.split(';').map(e=>e.trim())
 		for (let rule of rules) {
-			console.log(`rule ${rule}`);
-			let key = rule.split(':')[0].trim();
-			if (key) {
-				let value = rule[1].trim();
-				data[key] = value
-			}
+      rule = rule.split(':')
+			let key = rule[0].trim()
+			if (key) data[key] = rule[1].trim()
 		}
-		console.log(`data ${JSON.stringify(data)}`);
 		return data
 	}
+	/**
+	 * 
+	 * @param {Array} $keys 
+	 * @param {Object} $data 
+	 * @returns {Array}
+	 */
 	function mix($keys, $data) {
-		let frames = [];
+		let frames = []
 		for (let i = 0; i < $keys.length; i++) {
 			frames[i] = xtend($data, { offset: $keys[i] })
 		}
-		console.log(JSON.stringify(frames))
 		return frames
 	}
 	return function($name) {
-		let keyframes = [];
-		let mainBlock = getKeyframeStr($name);
-		let blocks = mainBlock.match(regexBlocks);
+		let keyframes = []
+		let mainBlock = getMainBlock($name)
+		let blocks = mainBlock.match(regexBlocks).map(e=>e.trim())
 		for (let block of blocks) {
-			let keys = block.match(regexBlockKey)[0].trim().split(',');
-			keys = keys.map(keyToOffset);
-			let content = blockToContent(block);
-			keyframes = keyframes.concat(mix(keys, content));
+			let keys = block.match(regexBlockKey)[0].trim().split(',')
+			keys = keys.map(keyToOffset)
+			let content = blockToContent(block)
+			keyframes = keyframes.concat(mix(keys, content))
 		}
-		return keyframes;
+		return keyframes
 	}
 }
 
@@ -314,5 +332,4 @@ function animationInit() {
 	aPlayState = scriptProperties.playState;
 	aName = scriptProperties.name;
 	aKeyframe = Keyframe(scriptProperties.keyframe);
-	console.log(JSON.stringify(aKeyframe(aName)));
 }
