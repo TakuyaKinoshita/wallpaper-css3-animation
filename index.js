@@ -1,5 +1,7 @@
 'use strict';
 
+import { start } from "repl";
+
 export var scriptProperties = createScriptProperties()
 	.addSlider({
 		name: 'dulation',
@@ -103,28 +105,36 @@ export var scriptProperties = createScriptProperties()
 	.finish();
 
 // animation propeties
-let time = 0;
-let dulation;
-let initFlg = true;
-let cubic;
-let diff;
-let progress = 0;
-let delayCount = 0;
+let time = 0,
+		initFlg = true,
+		cubic,
+		diff,
+		progress = 0;
 
-// keyframe parse
-// refarence
-// https://github.com/YerkoPalma/keyframe-parser/blob/master/index.js
+/** @type {Vec3} startValue */
+let startValue = new Vec3()
+/** @type {Vec3} endValue */
+let endValue = new Vec3()
 
 // private css3 propeties
-let aDulation,
-	aTimingFunction,
-	aDelay,
-	aIterationCount,
-	aDirection,
-	aFillMode,
-	aPlayState,
-	aName,
-	aKeyframe;
+/** @type {Number} aDulation - animation-dulation */
+let aDulation;
+/** @type {String} aTimingFunction - animation-timing-function */
+let aTimingFunction;
+/** @type {Number} aDelay - animation-delay */
+let aDelay;
+/** @type {String} aIterationCount - animation-iteration-count */
+let aIterationCount;
+/** @type {String} aDirection - animation-direction */
+let aDirection;
+/** @type {String} aFillMode - animation-dill-mode */
+let aFillMode;
+/** @type {String} aPlayState - animation-play-state */
+let aPlayState;
+/** @type {String} aName - animation-name */
+let aName;
+/** @type {String} aKeyframe - animation Keyframe */
+let aKeyframe;
 
 /**
  * @param {Number} $x1
@@ -269,38 +279,24 @@ export function init(value) {
  */
 export function update(value) {
 	if (initFlg) {
-		animationInit();
-		time = 0;
-		diff = scriptProperties.scaleMax - scriptProperties.scaleMin;
-		dulation = scriptProperties.dulation;
-		switch(aTimingFunction) {
-			case 'ease':
-			cubic = CubicBezier(0.25, 0.1, 0.25, 0.1);
-			break;
-			case 'linear':
-			cubic = CubicBezier(0, 0, 1, 1);
-			break;
-			case 'easeIn':
-			cubic = CubicBezier(0.42, 0, 1, 1);
-			break;
-			case 'easeOut':
-			cubic = CubicBezier(0, 0, 0.58, 1);
-			break;
-			case 'easeInOut':
-			cubic = CubicBezier(0.42, 0, 0.58, 1);
-			break;
-			case 'popOver':
-			cubic = CubicBezier(0.45, 1.17, 0.69, 1.1);
-			break;
-		}
-		initFlg = false;
-		return value;
+		animationInit()
+		initFlg = false
+		return value
 	}
 
-	if (delayCount > 0) {
-		delayCount -= engine.frametime;
-		return value;
+	if (aPlayState === 'paused') return value
+
+	if (aDelay > 0) {
+		aDelay -= engine.frametime
+		value = startValue
+		return value
 	}
+
+	if (isNan(aIterationCount)) {
+		if (Number(aIterationCount) <= 0) return endValue
+	}
+
+
 
 	// progress = time / dulation;
 	// console.log(progress);
@@ -311,11 +307,17 @@ export function update(value) {
 	// if (progress >= 1) {
 	// 	initFlg = true;
 	// }
-	// time += engine.frametime;
+	time += engine.frametime;
 	return value;
 }
 
-function animationInit() {
+/**
+ * @param {Vec3} $value 
+ */
+function animationInit($value) {
+	// if you want to set shared propety. please set to value 
+	// example
+	// aDulation = shared.exampleDulation
 	aDulation = scriptProperties.dulation;
 	aTimingFunction = scriptProperties.timingFunction;
 	aDelay = scriptProperties.delay;
@@ -332,4 +334,19 @@ function animationInit() {
 	aPlayState = scriptProperties.playState;
 	aName = scriptProperties.name;
 	aKeyframe = Keyframe(scriptProperties.keyframe);
+
+	startValue = $value
+	if(aTimingFunction === 'ease') cubic = CubicBezier(0.25, 0.1, 0.25, 0.1)
+	else if(aTimingFunction === 'linear') cubic = CubicBezier(0, 0, 1, 1)
+	else if(aTimingFunction === 'easeIn') cubic = CubicBezier(0.42, 0, 1, 1)
+	else if(aTimingFunction === 'easeOut') cubic = CubicBezier(0, 0, 0.58, 1)
+	else if(aTimingFunction === 'easeInOut') cubic = CubicBezier(0.42, 0, 0.58, 1)
+	else if(aTimingFunction === 'popOver') cubic = CubicBezier(0.45, 1.17, 0.69, 1.1)
+
+	if(aFillMode === 'none')  {
+		startValue = $value
+	} else if(aFIllMode === 'farwards') {
+	} else if(aFillMode === 'backwards') {
+	} else if(aFillMode === 'both') {
+	}
 }
